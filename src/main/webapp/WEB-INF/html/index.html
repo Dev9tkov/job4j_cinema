@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <title>Зал кинотеатра</title>
+</head>
+<body>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+<script>
+    $(
+        function() {
+            hall();
+            setInterval(hall, 15000);
+        }
+    );
+
+    function hall() {
+        $.ajax("http://localhost:8080/cinema/hall").done(function (data) {
+            const placeLength = data[data.length - 1].place;
+            const rowLength = data[data.length - 1].row;
+            const checkedId = $('input[name=seat]:checked').prop("id");
+            let resHead = '<tr>' +
+                '<th style="width: 120px;">Ряд / Место</th>';
+            for (let i = 0; i < placeLength; i++) {
+                resHead += '<th>' + data[i].place + '</th>';
+            }
+            let resBody = "";
+            let k = 0;
+            for (let i = 0; i < rowLength; i++) {
+                resBody += '<tr><td>' + data[k].row + '</td>';
+                const row = data[k].row;
+                if (k < data.length - rowLength) {
+                    k = k + 3;
+                }
+                for (let j = 0; j < placeLength; j++) {
+                    const place = data[j + i * 3].place;
+                    const price = data[j + i * 3].price;
+                    const free = data[j + i * 3].free;
+                    const curPlace = 'r' + row + 'p' + place;
+                    resBody += '<td';
+                    if (free) {
+                        resBody += ' style="background-color: #DEB887"';
+                    }
+                    resBody += ' style="background-color: #FAF0E6"';
+                    resBody += '><input id="' + curPlace +
+                        '" type="radio" name="seat" value="' + row + ':' + place + ':'
+                        + price + '"';
+                    if (free) {
+                        resBody += ' disabled';
+                    } else if (checkedId === curPlace) {
+                        resBody += 'checked';
+                    }
+                    resBody += '> Ряд ' + row + ', Место ' + place + ', Цена ' + price
+                        + ' р. </td>';
+                }
+                resBody += '</tr>';
+            }
+            $("#thead").html(resHead);
+            $("#tbody").html(resBody);
+        })
+    }
+
+    function payment() {
+        var radio = $('input[name=seat]:checked').val();
+        if (radio !== undefined) {
+            window.location.href = './payment.html?value=' + radio;
+        } else {
+            swal({
+                text: "Выберете, пожалуйста место",
+                icon: "warning",
+            })
+        }
+    }
+</script>
+
+<div class="container">
+    <div class="row pt-3">
+        <h4>
+            Бронирование места на сеанс
+        </h4>
+        <table class="table table-bordered">
+            <thead id="thead">
+            </thead>
+            <tbody id="tbody">
+            </tbody>
+        </table>
+    </div>
+    <div class="row float-right">
+        <button type="button" class="btn btn-success" onclick="payment()">Оплатить</button>
+    </div>
+</div>
+</body>
+</html>

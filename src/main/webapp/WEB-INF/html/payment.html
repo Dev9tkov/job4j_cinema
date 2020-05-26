@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <title>Покупка билета</title>
+</head>
+<body>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.maskedinput/1.4.1/jquery.maskedinput.min.js"></script>
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+<script>
+    $(
+        function() {
+            $("#phone").mask("+7 (999) 999-99-99");
+        }
+    );
+
+    function validate() {
+        var res = true;
+        var error = "";
+        if ($("#phone").val() === "") {
+            error += "Введите номер телефона, пожалуйста \n";
+            res = false;
+        }
+        var username = $("#username").val();
+        if (username === "") {
+            error += "Введите Имя, пожалуйста\n";
+            res = false;
+        }
+        if (error !== "") {
+            alert(error);
+            res = false;
+        }
+        return res;
+    }
+
+    function pay() {
+        if (validate()) {
+            const value = window.location.href.slice(window.location.href.indexOf('?value=') + 7);
+            const array = value.split(":");
+            const row = array[0];
+            const place = array[1];
+            const price = array[2];
+            const username = $("#username").val();
+            const phone = $("#phone").val();
+            $.ajax("http://localhost:8080/cinema/hall", {
+                type: "post",
+                data: JSON.stringify({
+                    row: row,
+                    place: place,
+                    price: price,
+                    username: username,
+                    phone: phone
+                }),
+                dataType: "json"
+            }).done(function (data) {
+                if (data.success === true) {
+                    var str = "Ряд " + data.row + " Место " + data.place;
+                    swal({
+                        title: str,
+                        text: "Поздравляем с покупкой билета",
+                        icon: "success",
+                        button: "На страницу зала",
+                    }).then((value) => {
+                        if (value === true) {
+                            window.location.href = "./index.html";
+                        }
+                    });
+                } else {
+                    swal({
+                        title: "Error",
+                        text: data.error,
+                        icon: "error",
+                        button: "На страницу зала"
+                    })
+                        .then((value) => {
+                            if (value === true) {
+                                window.location.href = "./index.html";
+                            }
+                        });
+                }
+            });
+        }
+    }
+
+    $(
+        function () {
+            var value = window.location.href.slice(window.location.href.indexOf('?value=') + 7);
+            var array = value.split(":");
+            var result = 'Вы выбрали ряд: ' + array[0] + ' место: ' + array[1] +', Сумма : ' + array[2] + ' рублей.';
+            $("#header").html(result);
+        }
+    );
+</script>
+<div class="container">
+    <div class="row pt-3">
+        <h3 id="header">
+        </h3>
+    </div>
+    <div class="row">
+        <form>
+            <div class="form-group">
+                <label for="username">Ваше Имя:</label>
+                <input type="text" class="form-control" id="username" name="username" placeholder="Имя">
+            </div>
+            <div class="form-group">
+                <label for="phone">Номер телефона:</label>
+                <input type="tel" class="form-control" id="phone" name="phone"
+                       placeholder="+7 (999) 999-99-99">
+            </div>
+            <button type="button" class="btn btn-success" onclick="pay()">Оплатить</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
