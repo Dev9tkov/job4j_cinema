@@ -112,7 +112,6 @@ public class DbStore implements IStore {
         boolean res = false;
         String selectPlace = "select * from hall where row = ? and place = ?";
         String updatePlace = "update hall set free = true WHERE id = ?";
-        String addAcc = "insert into account (name, telnumber, hall_id) values (?, ?, ?)";
         try (Connection cn = pool.getConnection()) {
             cn.setAutoCommit(false);
             try (PreparedStatement sP = cn.prepareStatement(selectPlace)) {
@@ -121,18 +120,18 @@ public class DbStore implements IStore {
                 ResultSet rs = sP.executeQuery();
                 while (rs.next()) {
                     int id = rs.getInt(1);
+                    boolean free = rs.getBoolean("free");
+                    if (free) {
+                        throw new IllegalStateException("Это место уже занято");
+                    }
                     try (PreparedStatement uP = cn.prepareStatement(updatePlace)) {
                         uP.setInt(1, id);
                         if (uP.executeUpdate() == 1) {
                             res = true;
-                            try (PreparedStatement aA = cn.prepareStatement(addAcc)) {
-                                aA.setString(1, account.getName());
-                                aA.setString(2, account.getTelNumber());
-                                aA.setInt(3, id);
-                                aA.executeUpdate();
-                            }
+                            addAccount(cn, account, id);
                             cn.commit();
-                        } else {
+                        }
+                        else {
                             cn.rollback();
                         }
                     }
@@ -144,6 +143,18 @@ public class DbStore implements IStore {
             e.printStackTrace();
         }
         return res;
+    }
+
+    private void addAccount(Connection conn, Account account, Integer id) {
+        String addAcc = "insert into account (name, telnumber, hall_id) values (?, ?, ?)";
+        try (PreparedStatement aA = conn.prepareStatement(addAcc)) {
+            aA.setString(1, account.getName());
+            aA.setString(2, account.getTelNumber());
+            aA.setInt(3, id);
+            aA.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
