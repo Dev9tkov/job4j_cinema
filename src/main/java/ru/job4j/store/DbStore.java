@@ -103,6 +103,10 @@ public class DbStore implements IStore {
      * Производим оплату, добаляем в таблицу Account данные.
      * Делаем это атомарно, пhи помощи setAutoCommit = false
      *
+     * Конструкция "select ... for update nowait" блокирующая.В этом случае при встрече со строкой,
+     * заблокированной другой сессией, текущая сессия не будет ждать, а сразу сгенерирует ошибку
+     * и сделает rollback.
+     *
      * @param hall    места
      * @param account аккаунт, оплативший билет
      * @return результат операции
@@ -110,7 +114,7 @@ public class DbStore implements IStore {
     @Override
     public boolean makePayment(Hall hall, Account account) {
         boolean res = false;
-        String selectPlace = "select * from hall where row = ? and place = ?";
+        String selectPlace = "select * from hall where row = ? and place = ? for update nowait";
         String updatePlace = "update hall set free = true WHERE id = ?";
         try (Connection cn = pool.getConnection()) {
             cn.setAutoCommit(false);
@@ -120,10 +124,6 @@ public class DbStore implements IStore {
                 ResultSet rs = sP.executeQuery();
                 while (rs.next()) {
                     int id = rs.getInt(1);
-                    boolean free = rs.getBoolean("free");
-                    if (free) {
-                        throw new IllegalStateException("Это место уже занято");
-                    }
                     try (PreparedStatement uP = cn.prepareStatement(updatePlace)) {
                         uP.setInt(1, id);
                         if (uP.executeUpdate() == 1) {
